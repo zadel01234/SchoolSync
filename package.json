@@ -4,9 +4,12 @@
   "description": "��#\u0000 \u0000S\u0000c\u0000h\u0000o\u0000o\u0000l\u0000S\u0000y\u0000n\u0000c\u0000\r\u0000 \u0000",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"No tests yet\" && exit 0",
-    "start": "node src/index.js"
-  },
+     "test": "jest --detectOpenHandles",
+     "start": "node src/index.js"
+   },
+   "jest": {
+     "testEnvironment": "node"
+   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zadel01234/SchoolSync.git"
@@ -19,6 +22,13 @@
   },
   "homepage": "https://github.com/zadel01234/SchoolSync#readme",
   "dependencies": {
-    "express": "^5.2.1"
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "pg": "^8.20.0",
+    "redis": "^5.12.1"
+  },
+  "devDependencies": {
+    "jest": "^30.3.0",
+    "supertest": "^7.2.2"
   }
 }
