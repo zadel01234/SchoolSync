@@ -239,6 +239,8 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   activeRole: UserRole | null;
+  hasCompletedSetup: boolean;
+  schoolName: string | null;
 }
 
 // ---- Navigation ----

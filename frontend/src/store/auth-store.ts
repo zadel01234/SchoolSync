@@ -9,6 +9,7 @@ interface AuthStore extends AuthState {
   setLoading: (loading: boolean) => void;
   login: (user: User, tokens: AuthTokens) => void;
   logout: () => void;
+  completeSetup: (role: UserRole, schoolName?: string) => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -19,6 +20,8 @@ export const useAuthStore = create<AuthStore>()(
       isAuthenticated: false,
       isLoading: true,
       activeRole: null,
+      hasCompletedSetup: false,
+      schoolName: null,
 
       setUser: (user) => set({ user }),
 
@@ -48,6 +51,13 @@ export const useAuthStore = create<AuthStore>()(
         });
       },
 
+      completeSetup: (role, schoolName) =>
+        set({
+          activeRole: role,
+          hasCompletedSetup: true,
+          schoolName: schoolName || null,
+        }),
+
       logout: () => {
         if (typeof window !== "undefined") {
           localStorage.removeItem("access_token");
@@ -59,6 +69,8 @@ export const useAuthStore = create<AuthStore>()(
           isAuthenticated: false,
           isLoading: false,
           activeRole: null,
+          hasCompletedSetup: false,
+          schoolName: null,
         });
       },
     }),
@@ -69,6 +81,8 @@ export const useAuthStore = create<AuthStore>()(
         tokens: state.tokens,
         isAuthenticated: state.isAuthenticated,
         activeRole: state.activeRole,
+        hasCompletedSetup: state.hasCompletedSetup,
+        schoolName: state.schoolName,
       }),
     }
   )

@@ -10,7 +10,7 @@ import { useAuthStore } from "@/store/auth-store";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuthStore();
+  const { login, hasCompletedSetup, activeRole } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -36,7 +36,13 @@ export default function LoginPage() {
         { accessToken: "mock-token", refreshToken: "mock-refresh" }
       );
       setIsLoading(false);
-      router.push("/select-role");
+
+      // If user already completed setup, go straight to their dashboard
+      if (hasCompletedSetup && activeRole) {
+        router.push("/dashboard");
+      } else {
+        router.push("/select-role");
+      }
     }, 1000);
   };
 

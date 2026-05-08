@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Bell, Search, Menu, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -52,21 +53,23 @@ export function TopNavbar() {
           <Moon className="hidden h-4 w-4 dark:block" />
         </Button>
 
-        <Button variant="ghost" size="icon-sm" className="relative" aria-label="Notifications">
-          <Bell className="h-4 w-4" />
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[hsl(var(--destructive))] text-[9px] font-bold text-white">
-            3
-          </span>
-        </Button>
+        <Link href="/dashboard/notifications">
+          <Button variant="ghost" size="icon-sm" className="relative" aria-label="Notifications">
+            <Bell className="h-4 w-4" />
+            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[hsl(var(--destructive))] text-[9px] font-bold text-white">
+              3
+            </span>
+          </Button>
+        </Link>
 
         {user && (
-          <div className="flex items-center gap-2 ml-2 pl-2 border-l border-[hsl(var(--border))]">
+          <Link href="/dashboard/settings" className="flex items-center gap-2 ml-2 pl-2 border-l border-[hsl(var(--border))] hover:opacity-80 transition-opacity">
             <UserAvatar name={`${user.firstName} ${user.lastName}`} src={user.avatar} size="sm" />
             <div className="hidden md:block">
               <p className="text-sm font-medium leading-none">{user.firstName}</p>
               <p className="text-xs text-[hsl(var(--muted-foreground))] capitalize">{user.role.replace("_", " ")}</p>
             </div>
-          </div>
+          </Link>
         )}
       </div>
     </header>

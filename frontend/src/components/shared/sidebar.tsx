@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
 import { useUIStore } from "@/store/ui-store";
@@ -11,9 +11,15 @@ import { ChevronLeft, LogOut, GraduationCap } from "lucide-react";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, activeRole, logout } = useAuthStore();
   const { sidebarCollapsed, toggleSidebarCollapse } = useUIStore();
   const [isMounted, setIsMounted] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -98,7 +104,7 @@ export function Sidebar() {
           {!sidebarCollapsed && <span>Collapse</span>}
         </button>
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive))]/5 transition-colors"
         >
           <LogOut className="h-5 w-5 shrink-0" />
