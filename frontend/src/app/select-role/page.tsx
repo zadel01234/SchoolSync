@@ -4,15 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  GraduationCap,
-  School,
-  Users,
-  BookOpen,
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
   Sparkles,
 } from "lucide-react";
+import { FaSchool, FaChalkboardTeacher, FaUserGraduate } from "react-icons/fa";
+import { HiUsers } from "react-icons/hi2";
+import { GraduationCap } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +25,6 @@ const roles: {
   role: UserRole;
   label: string;
   description: string;
-  emoji: string;
   icon: React.ReactNode;
   gradient: string;
   border: string;
@@ -36,8 +34,7 @@ const roles: {
     role: "school_admin",
     label: "School Owner / Admin",
     description: "Manage students, teachers, fees, and all school operations",
-    emoji: "🏫",
-    icon: <School className="h-6 w-6" />,
+    icon: <FaSchool className="h-10 w-10 text-indigo-500" />,
     gradient: "from-indigo-500/10 to-violet-500/10",
     border: "border-indigo-300 dark:border-indigo-700",
     ring: "ring-indigo-500/40",
@@ -46,8 +43,7 @@ const roles: {
     role: "teacher",
     label: "Teacher",
     description: "Mark attendance, post assignments, and manage classes",
-    emoji: "👩‍🏫",
-    icon: <BookOpen className="h-6 w-6" />,
+    icon: <FaChalkboardTeacher className="h-10 w-10 text-emerald-500" />,
     gradient: "from-emerald-500/10 to-teal-500/10",
     border: "border-emerald-300 dark:border-emerald-700",
     ring: "ring-emerald-500/40",
@@ -56,8 +52,7 @@ const roles: {
     role: "parent",
     label: "Parent / Guardian",
     description: "Track your child's attendance, fees, and academic results",
-    emoji: "👨‍👩‍👧",
-    icon: <Users className="h-6 w-6" />,
+    icon: <HiUsers className="h-10 w-10 text-amber-500" />,
     gradient: "from-amber-500/10 to-orange-500/10",
     border: "border-amber-300 dark:border-amber-700",
     ring: "ring-amber-500/40",
@@ -66,8 +61,7 @@ const roles: {
     role: "student",
     label: "Student",
     description: "View your timetable, assignments, and exam results",
-    emoji: "🎓",
-    icon: <GraduationCap className="h-6 w-6" />,
+    icon: <FaUserGraduate className="h-10 w-10 text-blue-500" />,
     gradient: "from-blue-500/10 to-cyan-500/10",
     border: "border-blue-300 dark:border-blue-700",
     ring: "ring-blue-500/40",
@@ -275,7 +269,7 @@ export default function SelectRolePage() {
                         </motion.div>
                       )}
 
-                      <div className="text-3xl">{r.emoji}</div>
+                      <div className="flex items-center justify-center p-2">{r.icon}</div>
                       <div>
                         <p className="font-heading font-semibold text-[hsl(var(--foreground))] text-sm">
                           {r.label}
@@ -337,8 +331,8 @@ export default function SelectRolePage() {
                     roles.find((r) => r.role === selectedRole)?.border
                   )}
                 >
-                  <span className="text-lg">
-                    {roles.find((r) => r.role === selectedRole)?.emoji}
+                  <span className="flex items-center scale-75">
+                    {roles.find((r) => r.role === selectedRole)?.icon}
                   </span>
                   {roles.find((r) => r.role === selectedRole)?.label}
                 </div>

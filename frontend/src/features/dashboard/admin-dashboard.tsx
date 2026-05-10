@@ -109,6 +109,21 @@ export function AdminDashboard() {
   // Filter state
   const [filterTerm, setFilterTerm] = useState("all");
 
+  const statsByTerm = {
+    all: { students: "1,247", attendance: "94.2%", collected: 12450000, staff: "86" },
+    "First Term": { students: "1,240", attendance: "95.1%", collected: 14000000, staff: "85" },
+    "Second Term": { students: "1,245", attendance: "93.8%", collected: 11000000, staff: "86" },
+    "Third Term": { students: "1,247", attendance: "94.2%", collected: 12450000, staff: "86" },
+  };
+  const currentStats = statsByTerm[filterTerm as keyof typeof statsByTerm] || statsByTerm.all;
+
+  const filteredActivity = filterTerm === "all"
+    ? recentActivity
+    : recentActivity.filter((_, i) => 
+        filterTerm === "First Term" ? i % 3 === 0 : 
+        filterTerm === "Second Term" ? i % 3 === 1 : i % 3 === 2
+      );
+
   /* -- handlers -- */
   const handleAddStudent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,10 +186,10 @@ export function AdminDashboard() {
 
         {/* KPI Cards */}
         <motion.div variants={staggerItem} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Students" value="1,247" change={4.5} changeLabel="vs last term" icon={<Users className="h-5 w-5" />} variant="primary" />
-          <StatCard title="Attendance Rate" value="94.2%" change={2.1} changeLabel="this week" icon={<ClipboardCheck className="h-5 w-5" />} variant="success" />
-          <StatCard title="Fee Collected" value={formatCurrency(12450000)} change={12.3} changeLabel="this month" icon={<Receipt className="h-5 w-5" />} variant="warning" />
-          <StatCard title="Active Staff" value="86" change={0} changeLabel="no change" icon={<UserCheck className="h-5 w-5" />} />
+          <StatCard title="Total Students" value={currentStats.students} change={4.5} changeLabel="vs last term" icon={<Users className="h-5 w-5" />} variant="primary" />
+          <StatCard title="Attendance Rate" value={currentStats.attendance} change={2.1} changeLabel="this week" icon={<ClipboardCheck className="h-5 w-5" />} variant="success" />
+          <StatCard title="Fee Collected" value={formatCurrency(currentStats.collected)} change={12.3} changeLabel="this month" icon={<Receipt className="h-5 w-5" />} variant="warning" />
+          <StatCard title="Active Staff" value={currentStats.staff} change={0} changeLabel="no change" icon={<UserCheck className="h-5 w-5" />} />
         </motion.div>
 
         {/* Charts & Activity */}
@@ -227,7 +242,7 @@ export function AdminDashboard() {
             </CardHeader>
             <CardContent className="pt-2">
               <div className="space-y-4">
-                {recentActivity.slice(0, 4).map((item) => (
+                {filteredActivity.slice(0, 4).map((item) => (
                   <div key={item.id} className="flex items-start gap-3 text-sm">
                     <div className="mt-1 h-2 w-2 rounded-full bg-[hsl(var(--primary))] shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -237,6 +252,9 @@ export function AdminDashboard() {
                     <span className="text-xs text-[hsl(var(--muted-foreground))] whitespace-nowrap">{formatRelativeTime(item.timestamp)}</span>
                   </div>
                 ))}
+                {filteredActivity.length === 0 && (
+                  <p className="text-center text-sm text-[hsl(var(--muted-foreground))] py-2">No activity found.</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -375,7 +393,7 @@ export function AdminDashboard() {
       {/* ============================================================ */}
       <ModalOverlay open={showAllActivity} onClose={() => setShowAllActivity(false)} title="All Recent Activity" maxWidth="max-w-xl">
         <div className="space-y-4">
-          {recentActivity.map((item) => (
+          {filteredActivity.map((item) => (
             <div key={item.id} className="flex items-start gap-3 text-sm">
               <div className="mt-1 h-2 w-2 rounded-full bg-[hsl(var(--primary))] shrink-0" />
               <div className="flex-1 min-w-0">
