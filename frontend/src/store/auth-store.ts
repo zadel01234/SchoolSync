@@ -16,14 +16,11 @@ interface AuthStore extends AuthState {
 
   /**
    * Registration flow — for new users.
-   * Always sets hasCompletedSetup to true because role + school are
-   * collected during the registration form itself.
+   * Sets hasCompletedSetup to false so they proceed to the select-role page.
    */
   register: (
     user: User,
-    tokens: AuthTokens,
-    role: UserRole,
-    schoolName?: string
+    tokens: AuthTokens
   ) => void;
 
   /**
@@ -79,21 +76,21 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       /* ──────────────────────────────────────────────
-         REGISTER — new users (role collected in form)
+         REGISTER — new users
          ────────────────────────────────────────────── */
-      register: (user, tokens, role, schoolName) => {
+      register: (user, tokens) => {
         if (typeof window !== "undefined") {
           localStorage.setItem("access_token", tokens.accessToken);
           localStorage.setItem("refresh_token", tokens.refreshToken);
         }
         set({
-          user: { ...user, role },
+          user,
           tokens,
           isAuthenticated: true,
           isLoading: false,
-          activeRole: role,
-          hasCompletedSetup: true,
-          schoolName: schoolName || null,
+          activeRole: user.role,
+          hasCompletedSetup: false,
+          schoolName: null,
         });
       },
 

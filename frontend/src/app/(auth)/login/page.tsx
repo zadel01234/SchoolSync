@@ -77,6 +77,22 @@ export default function LoginPage() {
         </span>
       </div>
 
+      {/* Tab Switcher */}
+      <div className="flex w-full rounded-xl bg-[hsl(var(--muted))] p-1">
+        <Link
+          href="/login"
+          className="w-1/2 flex items-center justify-center py-2.5 text-sm font-medium rounded-lg transition-all bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-sm"
+        >
+          Sign In
+        </Link>
+        <Link
+          href="/register"
+          className="w-1/2 flex items-center justify-center py-2.5 text-sm font-medium rounded-lg transition-all text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+        >
+          Sign Up
+        </Link>
+      </div>
+
       <div className="space-y-2">
         <h1 className="text-2xl font-heading font-bold tracking-tight">
           Welcome back

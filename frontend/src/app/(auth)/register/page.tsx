@@ -10,72 +10,14 @@ import {
   Lock,
   GraduationCap,
   User,
-  Building2,
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
-import { FaSchool, FaChalkboardTeacher, FaUserGraduate } from "react-icons/fa";
-import { HiUsers } from "react-icons/hi2";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types";
-
-/* ------------------------------------------------------------------ */
-/*  Role definitions                                                   */
-/* ------------------------------------------------------------------ */
-const roles: {
-  role: UserRole;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-  gradient: string;
-  border: string;
-  ring: string;
-  needsSchool: boolean;
-}[] = [
-  {
-    role: "school_admin",
-    label: "School Owner / Admin",
-    description: "Manage your school operations end-to-end",
-    icon: <FaSchool className="h-6 w-6 text-indigo-500" />,
-    gradient: "from-indigo-500/10 to-violet-500/10",
-    border: "border-indigo-300 dark:border-indigo-700",
-    ring: "ring-indigo-500/40",
-    needsSchool: true,
-  },
-  {
-    role: "teacher",
-    label: "Teacher",
-    description: "Manage classes, attendance & assignments",
-    icon: <FaChalkboardTeacher className="h-6 w-6 text-emerald-500" />,
-    gradient: "from-emerald-500/10 to-teal-500/10",
-    border: "border-emerald-300 dark:border-emerald-700",
-    ring: "ring-emerald-500/40",
-    needsSchool: true,
-  },
-  {
-    role: "parent",
-    label: "Parent / Guardian",
-    description: "Track your child's progress & fees",
-    icon: <HiUsers className="h-6 w-6 text-amber-500" />,
-    gradient: "from-amber-500/10 to-orange-500/10",
-    border: "border-amber-300 dark:border-amber-700",
-    ring: "ring-amber-500/40",
-    needsSchool: true,
-  },
-  {
-    role: "student",
-    label: "Student",
-    description: "View timetable, assignments & results",
-    icon: <FaUserGraduate className="h-6 w-6 text-blue-500" />,
-    gradient: "from-blue-500/10 to-cyan-500/10",
-    border: "border-blue-300 dark:border-blue-700",
-    ring: "ring-blue-500/40",
-    needsSchool: true,
-  },
-];
 
 /* ------------------------------------------------------------------ */
 /*  Password strength helper                                           */
@@ -109,8 +51,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
-  const [schoolName, setSchoolName] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -123,9 +63,6 @@ export default function RegisterPage() {
   const passwordsMismatch =
     confirmPassword.length > 0 && password !== confirmPassword;
 
-  const selectedRoleConfig = roles.find((r) => r.role === selectedRole);
-  const showSchoolField = selectedRoleConfig?.needsSchool ?? false;
-
   /* ---- Validation ---- */
   const validate = (): string | null => {
     if (!firstName.trim() || !lastName.trim())
@@ -134,9 +71,6 @@ export default function RegisterPage() {
     if (password.length < 8)
       return "Password must be at least 8 characters long.";
     if (password !== confirmPassword) return "Passwords do not match.";
-    if (!selectedRole) return "Please select your role.";
-    if (showSchoolField && !schoolName.trim())
-      return "Please enter your school name.";
     return null;
   };
 
@@ -162,7 +96,7 @@ export default function RegisterPage() {
         email,
         firstName,
         lastName,
-        role: selectedRole!,
+        role: "student" as UserRole, // Temp role until setup is complete
         isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -170,20 +104,11 @@ export default function RegisterPage() {
 
       register(
         newUser,
-        { accessToken: "mock-token", refreshToken: "mock-refresh" },
-        selectedRole!,
-        schoolName || undefined
+        { accessToken: "mock-token", refreshToken: "mock-refresh" }
       );
 
-      // Route to the correct dashboard based on role
-      if (
-        selectedRole === "super_admin" ||
-        selectedRole === "school_admin"
-      ) {
-        router.push("/dashboard/admin");
-      } else {
-        router.push(`/dashboard/${selectedRole}`);
-      }
+      // Route to select-role page after registration
+      router.push("/select-role");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -194,13 +119,29 @@ export default function RegisterPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Mobile logo */}
-      <div className="flex items-center gap-3 lg:hidden mb-4">
+      <div className="flex items-center gap-3 lg:hidden mb-8">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-primary">
           <GraduationCap className="h-6 w-6 text-white" />
         </div>
         <span className="text-xl font-heading font-bold">
           School<span className="text-[hsl(var(--primary))]">Sync</span>
         </span>
+      </div>
+
+      {/* Tab Switcher */}
+      <div className="flex w-full rounded-xl bg-[hsl(var(--muted))] p-1 mb-6">
+        <Link
+          href="/login"
+          className="w-1/2 flex items-center justify-center py-2.5 text-sm font-medium rounded-lg transition-all text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+        >
+          Sign In
+        </Link>
+        <Link
+          href="/register"
+          className="w-1/2 flex items-center justify-center py-2.5 text-sm font-medium rounded-lg transition-all bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-sm"
+        >
+          Sign Up
+        </Link>
       </div>
 
       <div className="space-y-2">
@@ -371,71 +312,7 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {/* ── Role selection ── */}
-        <div className="space-y-2.5">
-          <label className="text-sm font-medium text-[hsl(var(--foreground))]">
-            I am a… <span className="text-[hsl(var(--destructive))]">*</span>
-          </label>
-          <div className="grid grid-cols-2 gap-2.5">
-            {roles.map((r) => {
-              const isSelected = selectedRole === r.role;
-              return (
-                <button
-                  key={r.role}
-                  type="button"
-                  onClick={() => {
-                    setSelectedRole(r.role);
-                    if (error) setError("");
-                  }}
-                  className={cn(
-                    "group relative flex items-center gap-3 rounded-xl border-2 bg-gradient-to-br p-3 text-left transition-all duration-200",
-                    "hover:shadow-md hover:scale-[1.01] active:scale-[0.99]",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-                    r.gradient,
-                    isSelected
-                      ? `${r.border} ring-2 ${r.ring} shadow-md`
-                      : "border-transparent"
-                  )}
-                >
-                  {isSelected && (
-                    <div className="absolute top-2 right-2">
-                      <CheckCircle2 className="h-4 w-4 text-[hsl(var(--primary))]" />
-                    </div>
-                  )}
-                  <div className="shrink-0">{r.icon}</div>
-                  <div className="min-w-0">
-                    <p className="font-heading font-semibold text-[hsl(var(--foreground))] text-sm leading-tight">
-                      {r.label}
-                    </p>
-                    <p className="text-[10px] text-[hsl(var(--muted-foreground))] leading-snug mt-0.5 line-clamp-2">
-                      {r.description}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* ── School name (conditional) ── */}
-        {showSchoolField && (
-          <div className="animate-slide-up">
-            <Input
-              id="register-school-name"
-              label="School name"
-              type="text"
-              placeholder="e.g. Greenfield Academy"
-              value={schoolName}
-              onChange={(e) => {
-                setSchoolName(e.target.value);
-                if (error) setError("");
-              }}
-              leftIcon={<Building2 className="h-4 w-4" />}
-              required
-              autoComplete="organization"
-            />
-          </div>
-        )}
 
         {/* ── Submit ── */}
         <Button
