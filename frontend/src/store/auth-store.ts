@@ -7,9 +7,32 @@ interface AuthStore extends AuthState {
   setTokens: (tokens: AuthTokens) => void;
   setActiveRole: (role: UserRole) => void;
   setLoading: (loading: boolean) => void;
-  login: (user: User, tokens: AuthTokens) => void;
-  logout: () => void;
+
+  /**
+   * Sign-in flow — for existing users only.
+   * Sets hasCompletedSetup based on the backend response.
+   */
+  login: (user: User, tokens: AuthTokens, hasCompletedSetup?: boolean) => void;
+
+  /**
+   * Registration flow — for new users.
+   * Always sets hasCompletedSetup to true because role + school are
+   * collected during the registration form itself.
+   */
+  register: (
+    user: User,
+    tokens: AuthTokens,
+    role: UserRole,
+    schoolName?: string
+  ) => void;
+
+  /**
+   * Post-registration onboarding (select-role page).
+   * Only used if the register form does NOT collect role/school inline.
+   */
   completeSetup: (role: UserRole, schoolName?: string) => void;
+
+  logout: () => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -37,7 +60,10 @@ export const useAuthStore = create<AuthStore>()(
 
       setLoading: (isLoading) => set({ isLoading }),
 
-      login: (user, tokens) => {
+      /* ──────────────────────────────────────────────
+         LOGIN — existing users
+         ────────────────────────────────────────────── */
+      login: (user, tokens, hasCompletedSetup = true) => {
         if (typeof window !== "undefined") {
           localStorage.setItem("access_token", tokens.accessToken);
           localStorage.setItem("refresh_token", tokens.refreshToken);
@@ -48,9 +74,32 @@ export const useAuthStore = create<AuthStore>()(
           isAuthenticated: true,
           isLoading: false,
           activeRole: user.role,
+          hasCompletedSetup,
         });
       },
 
+      /* ──────────────────────────────────────────────
+         REGISTER — new users (role collected in form)
+         ────────────────────────────────────────────── */
+      register: (user, tokens, role, schoolName) => {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("access_token", tokens.accessToken);
+          localStorage.setItem("refresh_token", tokens.refreshToken);
+        }
+        set({
+          user: { ...user, role },
+          tokens,
+          isAuthenticated: true,
+          isLoading: false,
+          activeRole: role,
+          hasCompletedSetup: true,
+          schoolName: schoolName || null,
+        });
+      },
+
+      /* ──────────────────────────────────────────────
+         COMPLETE SETUP — legacy / select-role flow
+         ────────────────────────────────────────────── */
       completeSetup: (role, schoolName) =>
         set({
           activeRole: role,
@@ -58,6 +107,9 @@ export const useAuthStore = create<AuthStore>()(
           schoolName: schoolName || null,
         }),
 
+      /* ──────────────────────────────────────────────
+         LOGOUT
+         ────────────────────────────────────────────── */
       logout: () => {
         if (typeof window !== "undefined") {
           localStorage.removeItem("access_token");

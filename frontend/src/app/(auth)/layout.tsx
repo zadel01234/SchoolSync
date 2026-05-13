@@ -42,8 +42,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
 
       {/* Right panel - form */}
-      <div className="flex w-full lg:w-1/2 items-center justify-center p-6 md:p-12">
-        <div className="w-full max-w-md">{children}</div>
+      <div className="w-full lg:w-1/2 overflow-y-auto max-h-screen">
+        <div className="flex min-h-screen items-center justify-center px-6 py-12 md:px-12">
+          <div className="w-full max-w-md">{children}</div>
+        </div>
       </div>
     </div>
   );
