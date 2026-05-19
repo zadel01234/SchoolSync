@@ -1,4 +1,4 @@
--- SCHOOLS
+-- ─── SCHOOLS ──────────────────────────────────────────────────────────────────
 CREATE TABLE schools (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE schools (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- USERS (Admins, Teachers, Parents)
+-- ─── USERS ────────────────────────────────────────────────────────────────────
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
@@ -17,10 +17,19 @@ CREATE TABLE users (
   password_hash VARCHAR(255) NOT NULL,
   role VARCHAR(50) CHECK (role IN ('super_admin', 'admin', 'teacher', 'parent')),
   is_verified BOOLEAN DEFAULT FALSE,
+  -- 2FA
+  two_factor_secret VARCHAR(255),
+  two_factor_enabled BOOLEAN DEFAULT FALSE,
+  -- Password reset
+  reset_token VARCHAR(255),
+  reset_token_expiry TIMESTAMP,
+  -- Refresh token
+  refresh_token TEXT,
+  refresh_token_expiry TIMESTAMP,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- CLASSES
+-- ─── CLASSES ──────────────────────────────────────────────────────────────────
 CREATE TABLE classes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
@@ -29,7 +38,7 @@ CREATE TABLE classes (
   teacher_id UUID REFERENCES users(id)
 );
 
--- STUDENTS
+-- ─── STUDENTS ─────────────────────────────────────────────────────────────────
 CREATE TABLE students (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
@@ -42,7 +51,7 @@ CREATE TABLE students (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- ATTENDANCE
+-- ─── ATTENDANCE ───────────────────────────────────────────────────────────────
 CREATE TABLE attendance (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID REFERENCES students(id) ON DELETE CASCADE,
@@ -53,19 +62,20 @@ CREATE TABLE attendance (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- FEES
+-- ─── FEE STRUCTURES ───────────────────────────────────────────────────────────
 CREATE TABLE fee_structures (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  school_id UUID REFERENCES schools(id),
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL,
   amount NUMERIC(10,2) NOT NULL,
   term VARCHAR(50),
   academic_year VARCHAR(20)
 );
 
+-- ─── FEE INVOICES ─────────────────────────────────────────────────────────────
 CREATE TABLE fee_invoices (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  student_id UUID REFERENCES students(id),
+  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
   fee_structure_id UUID REFERENCES fee_structures(id),
   amount_due NUMERIC(10,2) NOT NULL,
   amount_paid NUMERIC(10,2) DEFAULT 0,
@@ -73,10 +83,10 @@ CREATE TABLE fee_invoices (
   status VARCHAR(20) CHECK (status IN ('unpaid', 'partial', 'paid'))
 );
 
--- ANNOUNCEMENTS
+-- ─── ANNOUNCEMENTS ────────────────────────────────────────────────────────────
 CREATE TABLE announcements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  school_id UUID REFERENCES schools(id),
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
   posted_by UUID REFERENCES users(id),
   title VARCHAR(255) NOT NULL,
   body TEXT NOT NULL,
