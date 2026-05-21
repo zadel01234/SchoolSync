@@ -6,19 +6,27 @@ import { ArrowLeft, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert } from "@/components/ui/alert";
+import { authApi } from "@/lib/api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
+  const [error, setError] = useState("");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await authApi.forgotPassword({ email });
       setSent(true);
-    }, 1500);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to send reset code. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -37,6 +45,12 @@ export default function ForgotPasswordPage() {
           No worries. Enter your email and we&apos;ll send you a reset code.
         </p>
       </div>
+
+      {error && (
+        <Alert variant="destructive" title="Error">
+          {error}
+        </Alert>
+      )}
 
       {sent ? (
         <Alert variant="success" title="Check your email">

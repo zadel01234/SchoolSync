@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import Cookies from "js-cookie";
 import type { User, UserRole, AuthTokens, AuthState } from "@/types";
 
 interface AuthStore extends AuthState {
@@ -7,6 +8,7 @@ interface AuthStore extends AuthState {
   setTokens: (tokens: AuthTokens) => void;
   setActiveRole: (role: UserRole) => void;
   setLoading: (loading: boolean) => void;
+  updateTokens: (tokens: AuthTokens) => void;
 
   /**
    * Sign-in flow — for existing users only.
@@ -32,6 +34,22 @@ interface AuthStore extends AuthState {
   logout: () => void;
 }
 
+const normalizeUser = (user: any): User => {
+  if (!user) return user;
+  let firstName = user.firstName || "";
+  let lastName = user.lastName || "";
+  if (user.full_name && (!firstName || !lastName)) {
+    const parts = user.full_name.trim().split(/\s+/);
+    firstName = parts[0] || "";
+    lastName = parts.slice(1).join(" ") || "";
+  }
+  return {
+    ...user,
+    firstName,
+    lastName,
+  };
+};
+
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set) => ({
@@ -43,12 +61,20 @@ export const useAuthStore = create<AuthStore>()(
       hasCompletedSetup: false,
       schoolName: null,
 
-      setUser: (user) => set({ user }),
+      setUser: (user) => set({ user: normalizeUser(user) }),
 
       setTokens: (tokens) => {
         if (typeof window !== "undefined") {
-          localStorage.setItem("access_token", tokens.accessToken);
-          localStorage.setItem("refresh_token", tokens.refreshToken);
+          Cookies.set("access_token", tokens.accessToken, { path: "/", secure: process.env.NODE_ENV === "production", sameSite: "lax" });
+          Cookies.set("refresh_token", tokens.refreshToken, { path: "/", expires: 7, secure: process.env.NODE_ENV === "production", sameSite: "lax" });
+        }
+        set({ tokens });
+      },
+
+      updateTokens: (tokens) => {
+        if (typeof window !== "undefined") {
+          Cookies.set("access_token", tokens.accessToken, { path: "/", secure: process.env.NODE_ENV === "production", sameSite: "lax" });
+          Cookies.set("refresh_token", tokens.refreshToken, { path: "/", expires: 7, secure: process.env.NODE_ENV === "production", sameSite: "lax" });
         }
         set({ tokens });
       },
@@ -61,16 +87,17 @@ export const useAuthStore = create<AuthStore>()(
          LOGIN — existing users
          ────────────────────────────────────────────── */
       login: (user, tokens, hasCompletedSetup = true) => {
+        const normalized = normalizeUser(user);
         if (typeof window !== "undefined") {
-          localStorage.setItem("access_token", tokens.accessToken);
-          localStorage.setItem("refresh_token", tokens.refreshToken);
+          Cookies.set("access_token", tokens.accessToken, { path: "/", secure: process.env.NODE_ENV === "production", sameSite: "lax" });
+          Cookies.set("refresh_token", tokens.refreshToken, { path: "/", expires: 7, secure: process.env.NODE_ENV === "production", sameSite: "lax" });
         }
         set({
-          user,
+          user: normalized,
           tokens,
           isAuthenticated: true,
           isLoading: false,
-          activeRole: user.role,
+          activeRole: normalized.role,
           hasCompletedSetup,
         });
       },
@@ -79,16 +106,17 @@ export const useAuthStore = create<AuthStore>()(
          REGISTER — new users
          ────────────────────────────────────────────── */
       register: (user, tokens) => {
+        const normalized = normalizeUser(user);
         if (typeof window !== "undefined") {
-          localStorage.setItem("access_token", tokens.accessToken);
-          localStorage.setItem("refresh_token", tokens.refreshToken);
+          Cookies.set("access_token", tokens.accessToken, { path: "/", secure: process.env.NODE_ENV === "production", sameSite: "lax" });
+          Cookies.set("refresh_token", tokens.refreshToken, { path: "/", expires: 7, secure: process.env.NODE_ENV === "production", sameSite: "lax" });
         }
         set({
-          user,
+          user: normalized,
           tokens,
           isAuthenticated: true,
           isLoading: false,
-          activeRole: user.role,
+          activeRole: normalized.role,
           hasCompletedSetup: false,
           schoolName: null,
         });
@@ -109,8 +137,8 @@ export const useAuthStore = create<AuthStore>()(
          ────────────────────────────────────────────── */
       logout: () => {
         if (typeof window !== "undefined") {
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
+          Cookies.remove("access_token", { path: "/" });
+          Cookies.remove("refresh_token", { path: "/" });
         }
         set({
           user: null,

@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types";
+import { authApi } from "@/lib/api";
 
 /* ------------------------------------------------------------------ */
 /*  Password strength helper                                           */
@@ -88,29 +89,27 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      // Simulate registration API call — replace with real API
-      await new Promise((resolve) => setTimeout(resolve, 1400));
-
-      const newUser = {
-        id: crypto.randomUUID?.() || String(Date.now()),
+      const response = await authApi.register({
+        full_name: `${firstName.trim()} ${lastName.trim()}`,
         email,
-        firstName,
-        lastName,
-        role: "student" as UserRole, // Temp role until setup is complete
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+        password,
+        role: "admin",
+      });
 
       register(
-        newUser,
-        { accessToken: "mock-token", refreshToken: "mock-refresh" }
+        response.user,
+        { accessToken: response.accessToken, refreshToken: response.refreshToken }
       );
 
       // Route to select-role page after registration
       router.push("/select-role");
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "Something went wrong. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }

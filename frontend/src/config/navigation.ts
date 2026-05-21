@@ -31,6 +31,7 @@ export const navigationConfig: Record<UserRole, NavItem[]> = {
   ],
   school_admin: [
     { label: "Dashboard", href: "/dashboard/admin", icon: "LayoutDashboard" },
+    { label: "Staff", href: "/dashboard/users", icon: "Users" },
     { label: "Students", href: "/dashboard/students", icon: "GraduationCap" },
     { label: "Attendance", href: "/dashboard/attendance", icon: "ClipboardCheck" },
     { label: "Fees", href: "/dashboard/fees", icon: "Receipt" },

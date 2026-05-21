@@ -15,6 +15,7 @@ import { GraduationCap } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { schoolApi } from "@/lib/api";
 import type { UserRole } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -82,6 +83,7 @@ interface DetailField {
 const detailFieldsByRole: Record<string, DetailField[]> = {
   school_admin: [
     { name: "schoolName", label: "School name", placeholder: "e.g. Greenfield Academy", required: true },
+    { name: "schoolEmail", label: "School email address", placeholder: "e.g. info@greenfield.com", type: "email", required: true },
     { name: "schoolAddress", label: "School address", placeholder: "e.g. 14 Victoria Island, Lagos" },
     { name: "phone", label: "Phone number", placeholder: "+234 800 000 0000", type: "tel" },
   ],
@@ -123,6 +125,7 @@ export default function SelectRolePage() {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [details, setDetails] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   /* Go to step 2 */
   const handleNext = () => {
@@ -135,17 +138,30 @@ export default function SelectRolePage() {
   const handleBack = () => {
     setDirection(-1);
     setStep(1);
+    setError("");
   };
 
   /* Submit and complete setup */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRole) return;
 
+    setError("");
     setIsSubmitting(true);
 
-    // Simulate a brief save delay
-    setTimeout(() => {
+    try {
+      if (selectedRole === "school_admin" || selectedRole === "super_admin") {
+        await schoolApi.createSchool({
+          name: details.schoolName,
+          email: details.schoolEmail,
+          address: details.schoolAddress,
+          phone: details.phone,
+        });
+      } else {
+        // For other roles, we would ideally call an endpoint to join a school or update profile
+        // e.g., await schoolApi.joinSchool({ ...details, role: selectedRole })
+      }
+
       completeSetup(selectedRole, details.schoolName);
 
       // Route to the correct dashboard
@@ -154,7 +170,17 @@ export default function SelectRolePage() {
       } else {
         router.push(`/dashboard/${selectedRole}`);
       }
-    }, 600);
+    } catch (err: any) {
+      console.error("Setup failed", err);
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "Setup failed. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const currentFields = selectedRole ? detailFieldsByRole[selectedRole] ?? [] : [];
@@ -339,6 +365,11 @@ export default function SelectRolePage() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                {error && (
+                  <div className="flex items-center gap-2 rounded-lg border border-[hsl(var(--destructive)/0.3)] bg-[hsl(var(--destructive)/0.05)] px-4 py-3 text-sm text-[hsl(var(--destructive))]">
+                    <span>{error}</span>
+                  </div>
+                )}
                 {currentFields.map((field, index) => (
                   <motion.div
                     key={field.name}

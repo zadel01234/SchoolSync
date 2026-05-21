@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowLeft, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Alert } from "@/components/ui/alert";
+import { authApi } from "@/lib/api";
 
 function getStrength(pw: string): number {
   let s = 0;
@@ -17,11 +19,17 @@ function getStrength(pw: string): number {
 }
 
 export default function ResetPasswordPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const token = searchParams.get("token") || "";
+  
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
+
   const strength = getStrength(password);
   const variant = strength <= 25 ? "destructive" as const : strength <= 75 ? "warning" as const : "success" as const;
   const label = strength <= 25 ? "Weak" : strength <= 50 ? "Fair" : strength <= 75 ? "Good" : "Strong";
@@ -34,21 +42,43 @@ export default function ResetPasswordPage() {
         </div>
         <h1 className="text-2xl font-heading font-bold">Password reset!</h1>
         <p className="text-sm text-[hsl(var(--muted-foreground))]">Your password has been successfully updated.</p>
-        <Link href="/login"><Button className="w-full" size="lg">Back to login</Button></Link>
+        <Button className="w-full" size="lg" onClick={() => router.push("/login")}>Back to login</Button>
       </div>
     );
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirm) return;
+    setLoading(true);
+    setError("");
+    try {
+      await authApi.resetPassword({ token, newPassword: password });
+      setDone(true);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to reset password. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-fade-in">
-      <Link href="/verify-otp" className="inline-flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
+      <button onClick={() => router.back()} className="inline-flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
         <ArrowLeft className="h-4 w-4" />Back
-      </Link>
+      </button>
       <div className="space-y-2">
         <h1 className="text-2xl font-heading font-bold">Set new password</h1>
         <p className="text-sm text-[hsl(var(--muted-foreground))]">Must be at least 8 characters.</p>
       </div>
-      <form onSubmit={(e) => { e.preventDefault(); setLoading(true); setTimeout(() => { setLoading(false); setDone(true); }, 1500); }} className="space-y-4">
+
+      {error && (
+        <Alert variant="destructive" title="Error">
+          {error}
+        </Alert>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
         <Input label="New password" type={showPw ? "text" : "password"} placeholder="••••••••" value={password}
           onChange={(e) => setPassword(e.target.value)} leftIcon={<Lock className="h-4 w-4" />}
           rightIcon={<button type="button" onClick={() => setShowPw(!showPw)} tabIndex={-1}>{showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>} required />
