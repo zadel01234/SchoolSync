@@ -7,6 +7,7 @@ import { Eye, EyeOff, Mail, Lock, GraduationCap, AlertCircle } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/auth-store";
+import { authApi } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,31 +36,32 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // Simulate login API call — replace with real API
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const response = await authApi.login({ email, password });
 
-      // Mock: authenticate and return existing user data from backend
-      // In production, the API returns the user's role, setup status, etc.
+      // If the backend indicates 2FA is required
+      if ((response as any).requires2FA) {
+        // Redirect to the OTP verification page for 2FA
+        router.push(`/verify-otp?type=2fa`);
+        return;
+      }
+
+      // Authenticate and return existing user data from backend
       login(
-        {
-          id: "1",
-          email,
-          firstName: "Admin",
-          lastName: "User",
-          role: "school_admin",
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        { accessToken: "mock-token", refreshToken: "mock-refresh" },
-        true // hasCompletedSetup — existing users have already completed onboarding
+        response.user,
+        { accessToken: response.accessToken, refreshToken: response.refreshToken },
+        true // Assuming existing users have completed onboarding. Adjust if backend provides this.
       );
 
       // Returning users go straight to their dashboard
       router.push("/dashboard");
-    } catch {
-      setError("Invalid email or password. Please try again.");
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "Invalid email or password. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }

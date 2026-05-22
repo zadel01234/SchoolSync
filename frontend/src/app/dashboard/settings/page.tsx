@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { School, Upload, Save, CheckCircle2, User, LogOut } from "lucide-react";
+import { School, Upload, Save, CheckCircle2, User, LogOut, Shield, Lock, QrCode } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/ui/avatar";
+import { Alert } from "@/components/ui/alert";
 import { useAuthStore } from "@/store/auth-store";
 import { staggerContainer, staggerItem } from "@/lib/animations";
+import { schoolApi, authApi } from "@/lib/api";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -18,16 +20,41 @@ export default function SettingsPage() {
 
   // School profile form
   const [schoolForm, setSchoolForm] = useState({
-    name: "Greenfield Academy",
-    email: "admin@greenfield.edu.ng",
-    phone: "+234 801 234 5678",
-    address: "12 Education Lane, Lagos",
-    session: "2025/2026",
-    term: "First Term",
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    session: "",
+    term: "",
   });
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  // 2FA State
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [secret, setSecret] = useState<string | null>(null);
+  const [is2FASetup, setIs2FASetup] = useState(false);
+  const [is2FALoading, setIs2FALoading] = useState(false);
+
+  // Fetch school data on mount
+  useEffect(() => {
+    if (user?.role === "school_admin" || user?.role === "super_admin") {
+      schoolApi.getSchool().then((data) => {
+        if (data) {
+          setSchoolForm({
+            name: data.name || "",
+            email: data.email || "",
+            phone: data.phone || "",
+            address: data.address || "",
+            session: data.session || "",
+            term: data.term || "",
+          });
+        }
+      }).catch((err) => console.error("Failed to fetch school:", err));
+    }
+  }, [user]);
 
   const handleUploadLogo = () => {
     fileInputRef.current?.click();
@@ -54,14 +81,41 @@ export default function SettingsPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleSaveChanges = (e: React.FormEvent) => {
+  const handleSaveChanges = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
+    setSaveSuccess(false);
+    setSaveError("");
+    try {
+      await schoolApi.updateSchool({
+        name: schoolForm.name,
+        email: schoolForm.email,
+        phone: schoolForm.phone,
+        address: schoolForm.address,
+        session: schoolForm.session,
+        term: schoolForm.term,
+      });
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2500);
-    }, 1000);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err: any) {
+      setSaveError(err.response?.data?.message || "Failed to save changes.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSetup2FA = async () => {
+    setIs2FALoading(true);
+    try {
+      const data = await authApi.setup2fa();
+      setQrCode(data.qrCodeUrl || null);
+      setSecret(data.secret || null);
+      setIs2FASetup(true);
+    } catch (err) {
+      console.error("2FA setup failed:", err);
+    } finally {
+      setIs2FALoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -186,6 +240,61 @@ export default function SettingsPage() {
                 </Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Security & 2FA */}
+      <motion.div variants={staggerItem}>
+        <Card padding="md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-[hsl(var(--primary))]" />
+              Security
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6 pt-2">
+            {!is2FASetup ? (
+              <div className="flex flex-col sm:flex-row items-center justify-between p-4 border rounded-xl gap-4">
+                <div className="space-y-1">
+                  <p className="font-medium">Two-Factor Authentication (2FA)</p>
+                  <p className="text-sm text-[hsl(var(--muted-foreground))]">
+                    Protect your account by requiring an OTP code during login.
+                  </p>
+                </div>
+                <Button onClick={handleSetup2FA} loading={is2FALoading} leftIcon={<Lock className="h-4 w-4" />}>
+                  Enable 2FA
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4 p-4 border rounded-xl bg-[hsl(var(--muted))]/30">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <QrCode className="h-5 w-5" />
+                  Scan this QR Code
+                </h3>
+                <p className="text-sm text-[hsl(var(--muted-foreground))]">
+                  Use Google Authenticator, Authy, or any standard authenticator app to scan the code below.
+                </p>
+                <div className="p-4 bg-white rounded-lg inline-block shadow-sm">
+                  {qrCode && qrCode.startsWith("data:image") ? (
+                    <img src={qrCode} alt="2FA QR Code" className="w-48 h-48" />
+                  ) : (
+                    <div className="w-48 h-48 bg-[hsl(var(--border))] rounded-lg flex items-center justify-center text-[hsl(var(--muted-foreground))] text-sm">
+                      [QR Code from API]
+                    </div>
+                  )}
+                </div>
+                {secret && (
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Or enter this secret manually:</p>
+                    <code className="px-3 py-1.5 bg-[hsl(var(--muted))] rounded-lg text-sm tracking-widest font-mono">
+                      {secret}
+                    </code>
+                  </div>
+                )}
+                <Button variant="outline" onClick={() => setIs2FASetup(false)}>Done</Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>

@@ -2,16 +2,23 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { authApi } from "@/lib/api";
+import { useAuthStore } from "@/store/auth-store";
 
 export default function VerifyOTPPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const type = searchParams.get("type"); // "2fa" or "reset"
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [countdown, setCountdown] = useState(60);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const { login } = useAuthStore();
 
   useEffect(() => {
     inputRefs.current[0]?.focus();
@@ -44,13 +51,31 @@ export default function VerifyOTPPage() {
     inputRefs.current[Math.min(pasted.length, 5)]?.focus();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const token = otp.join("");
     setIsLoading(true);
-    setTimeout(() => {
+    setError("");
+
+    try {
+      if (type === "2fa") {
+        const response = await authApi.verify2fa({ token });
+        login(
+          response.user,
+          { accessToken: response.accessToken, refreshToken: response.refreshToken },
+          true
+        );
+        router.push("/dashboard");
+      } else {
+        // For password reset flow
+        // The token would normally be verified here or passed to reset-password page
+        router.push(`/reset-password?token=${token}`);
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Invalid code. Please try again.");
+    } finally {
       setIsLoading(false);
-      router.push("/reset-password");
-    }, 1500);
+    }
   };
 
   return (
@@ -60,9 +85,21 @@ export default function VerifyOTPPage() {
       </Link>
 
       <div className="space-y-2">
-        <h1 className="text-2xl font-heading font-bold tracking-tight">Verify your email</h1>
-        <p className="text-sm text-[hsl(var(--muted-foreground))]">Enter the 6-digit code we sent to your email address.</p>
+        <h1 className="text-2xl font-heading font-bold tracking-tight">
+          {type === "2fa" ? "Two-Factor Authentication" : "Verify your email"}
+        </h1>
+        <p className="text-sm text-[hsl(var(--muted-foreground))]">
+          {type === "2fa"
+            ? "Enter the 6-digit code from your authenticator app."
+            : "Enter the 6-digit code we sent to your email address."}
+        </p>
       </div>
+
+      {error && (
+        <Alert variant="destructive" title="Error">
+          {error}
+        </Alert>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex justify-center gap-3" onPaste={handlePaste}>

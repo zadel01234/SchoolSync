@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, UserPlus, Search, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -8,24 +9,47 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/ui/avatar";
 import { staggerContainer, staggerItem } from "@/lib/animations";
-
-const users = [
-  { id: "1", name: "David Okon", email: "david@greenfield.edu", role: "school_admin", school: "Greenfield Academy", status: "active" },
-  { id: "2", name: "Sarah Adeleke", email: "sarah@lighthouse.edu", role: "teacher", school: "Lighthouse Secondary", status: "active" },
-  { id: "3", name: "Michael Ibrahim", email: "michael@greenfield.edu", role: "parent", school: "Greenfield Academy", status: "active" },
-  { id: "4", name: "System Admin", email: "admin@schoolsync.app", role: "super_admin", school: "System", status: "active" },
-];
+import { schoolApi } from "@/lib/api";
+import { InviteStaffModal } from "@/components/dashboard/invite-staff-modal";
 
 export default function UsersPage() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+
+  const fetchStaff = async () => {
+    try {
+      setIsLoading(true);
+      const data = await schoolApi.getStaff();
+      const staffList = Array.isArray(data) ? data : data?.staff || [];
+      setUsers(staffList);
+    } catch (error) {
+      console.error("Failed to fetch staff:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStaff();
+  }, []);
+
   return (
     <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="space-y-6">
+      <InviteStaffModal 
+        open={isInviteOpen} 
+        onClose={() => setIsInviteOpen(false)} 
+        onInvited={fetchStaff} 
+      />
       <motion.div variants={staggerItem} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-heading font-bold">User Management</h1>
           <p className="text-sm text-[hsl(var(--muted-foreground))]">Manage access control and user accounts</p>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" leftIcon={<UserPlus className="h-4 w-4" />}>Invite User</Button>
+          <Button size="sm" onClick={() => setIsInviteOpen(true)} leftIcon={<UserPlus className="h-4 w-4" />}>
+            Invite User
+          </Button>
         </div>
       </motion.div>
 
@@ -48,30 +72,43 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[hsl(var(--border))]">
-              {users.map((u) => (
-                <tr key={u.id} className="hover:bg-[hsl(var(--muted))]/30">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <UserAvatar name={u.name} size="sm" />
-                      <div>
-                        <span className="font-medium block">{u.name}</span>
-                        <span className="text-xs text-[hsl(var(--muted-foreground))]">{u.email}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant="outline" className="capitalize flex w-fit items-center gap-1">
-                      {u.role === "super_admin" && <ShieldCheck className="h-3 w-3 text-[hsl(var(--primary))]" />}
-                      {u.role.replace("_", " ")}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-[hsl(var(--muted-foreground))]">{u.school}</td>
-                  <td className="px-4 py-3"><Badge variant="success" dot>Active</Badge></td>
-                  <td className="px-4 py-3 text-right">
-                    <Button variant="ghost" size="sm">Manage</Button>
-                  </td>
-                </tr>
-              ))}
+              {isLoading ? (
+                <tr><td colSpan={5} className="text-center py-8 text-[hsl(var(--muted-foreground))]">Loading staff...</td></tr>
+              ) : users.length === 0 ? (
+                <tr><td colSpan={5} className="text-center py-8 text-[hsl(var(--muted-foreground))]">No staff members found. Invite some!</td></tr>
+              ) : (
+                users.map((u) => {
+                  const displayName = u.full_name || (u.firstName ? `${u.firstName} ${u.lastName}` : "") || "Unnamed User";
+                  return (
+                    <tr key={u.id || u.email} className="hover:bg-[hsl(var(--muted))]/30">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <UserAvatar name={displayName} size="sm" />
+                          <div>
+                            <span className="font-medium block">{displayName}</span>
+                            <span className="text-xs text-[hsl(var(--muted-foreground))]">{u.email}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant="outline" className="capitalize flex w-fit items-center gap-1">
+                          {u.role === "super_admin" && <ShieldCheck className="h-3 w-3 text-[hsl(var(--primary))]" />}
+                          {u.role ? u.role.replace("_", " ") : "User"}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-[hsl(var(--muted-foreground))]">{u.school?.name || "N/A"}</td>
+                      <td className="px-4 py-3">
+                        <Badge variant={u.isActive ? "success" : "warning"} dot>
+                          {u.isActive ? "Active" : "Pending"}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Button variant="ghost" size="sm">Manage</Button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </Card>
