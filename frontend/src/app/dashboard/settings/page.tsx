@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { School, Upload, Save, CheckCircle2, User, LogOut, Shield, Lock, QrCode } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { QRCodeSVG } from "qrcode.react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,8 +41,11 @@ export default function SettingsPage() {
 
   // Fetch school data on mount
   useEffect(() => {
-    if (user?.role === "school_admin" || user?.role === "super_admin") {
-      schoolApi.getSchool().then((data) => {
+    const role = user?.role;
+    if (role === "school_admin" || role === "super_admin") {
+      schoolApi.getSchool().then((res) => {
+        // Backend may return { school: {...} } or a flat object
+        const data = res?.school || res;
         if (data) {
           setSchoolForm({
             name: data.name || "",
@@ -108,8 +112,10 @@ export default function SettingsPage() {
     setIs2FALoading(true);
     try {
       const data = await authApi.setup2fa();
-      setQrCode(data.qrCodeUrl || null);
-      setSecret(data.secret || null);
+      // The backend may return the QR value under different field names
+      const qrValue = data.qrCodeUrl || data.qr_code || data.otpauth_url || data.qrCode || null;
+      setQrCode(qrValue);
+      setSecret(data.secret || data.base32 || null);
       setIs2FASetup(true);
     } catch (err) {
       console.error("2FA setup failed:", err);
@@ -278,9 +284,11 @@ export default function SettingsPage() {
                 <div className="p-4 bg-white rounded-lg inline-block shadow-sm">
                   {qrCode && qrCode.startsWith("data:image") ? (
                     <img src={qrCode} alt="2FA QR Code" className="w-48 h-48" />
+                  ) : qrCode ? (
+                    <QRCodeSVG value={qrCode} size={192} level="M" includeMargin />
                   ) : (
                     <div className="w-48 h-48 bg-[hsl(var(--border))] rounded-lg flex items-center justify-center text-[hsl(var(--muted-foreground))] text-sm">
-                      [QR Code from API]
+                      Generating QR Code...
                     </div>
                   )}
                 </div>

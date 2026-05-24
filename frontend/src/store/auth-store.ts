@@ -34,6 +34,19 @@ interface AuthStore extends AuthState {
   logout: () => void;
 }
 
+const normalizeRole = (role: string): UserRole => {
+  // The backend uses "admin" but the frontend navigation/types expect "school_admin"
+  const roleMap: Record<string, UserRole> = {
+    admin: "school_admin",
+    school_admin: "school_admin",
+    super_admin: "super_admin",
+    teacher: "teacher",
+    parent: "parent",
+    student: "student",
+  };
+  return roleMap[role] || (role as UserRole);
+};
+
 const normalizeUser = (user: any): User => {
   if (!user) return user;
   let firstName = user.firstName || "";
@@ -47,6 +60,7 @@ const normalizeUser = (user: any): User => {
     ...user,
     firstName,
     lastName,
+    role: normalizeRole(user.role),
   };
 };
 
