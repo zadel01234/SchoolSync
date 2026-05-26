@@ -242,4 +242,34 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, refreshToken, logout, setup2FA, verify2FA, forgotPassword, resetPassword };
+// ─── Change Password ──────────────────────────────────────────────────────────
+
+const changePassword = async (req, res) => {
+  const { current_password, new_password } = req.body;
+
+  try {
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+    const user = result.rows[0];
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const isMatch = await bcrypt.compare(current_password, user.password_hash);
+    if (!isMatch) return res.status(400).json({ message: 'Current password is incorrect' });
+
+    if (new_password.length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters' });
+    }
+
+    const password_hash = await bcrypt.hash(new_password, 12);
+
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [password_hash, req.user.id]);
+
+    res.json({ message: 'Password changed successfully. Please log in again.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+
+
+module.exports = { register, login, refreshToken, logout, setup2FA, verify2FA, forgotPassword, resetPassword, changePassword };

@@ -2,9 +2,11 @@ const express = require('express');
 const router = express.Router();
 const {
   register, login, refreshToken, logout,
-  setup2FA, verify2FA, forgotPassword, resetPassword
+  setup2FA, verify2FA, forgotPassword, resetPassword,
+  changePassword
 } = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
+
 
 /**
  * @swagger
@@ -314,5 +316,47 @@ router.post('/forgot-password', forgotPassword);
  *         description: Invalid or expired token
  */
 router.post('/reset-password', resetPassword);
+
+
+/**
+ * @swagger
+ * /api/auth/change-password:
+ *   post:
+ *     summary: Change password
+ *     description: |
+ *       Allows an authenticated user to change their password.
+ *       Requires the current password for verification.
+ *
+ *       **This is the endpoint teachers should use on first login**
+ *       to replace their temporary password with a permanent one.
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [current_password, new_password]
+ *             properties:
+ *               current_password:
+ *                 type: string
+ *                 example: x7k2m9pq
+ *                 description: The temporary password received in the invitation email
+ *               new_password:
+ *                 type: string
+ *                 minLength: 8
+ *                 example: MyNewPassword123!
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       400:
+ *         description: Current password incorrect or new password too short
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/change-password', authenticate, changePassword);
+
 
 module.exports = router;
